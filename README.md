@@ -1,3 +1,5 @@
+# nigit [![Build Status](https://travis-ci.org/lukasmartinelli/nigit.svg)](https://travis-ci.org/lukasmartinelli/nigit)
+
 A web server that wraps around programs and shell scripts and exposes them as API.
 
 ## Get Started
@@ -10,7 +12,7 @@ read input
 echo "$input"
 ```
 
-Now execute it with `wobub echo.sh`.
+Now execute it with `nigit echo.sh`.
 A HTTP server has now been started on `localhost:8000`.
 Let's execute an API call.
 
