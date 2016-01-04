@@ -39,7 +39,7 @@ You can download a single binary for Linux, OSX or Windows.
 **OSX**
 
 ```bash
-wget -O nigit https://github.com/lukasmartinelli/pipecat/releases/download/v0.1/nigit_darwin_amd64
+wget -O nigit https://github.com/lukasmartinelli/pipecat/releases/download/v0.1-alpha/nigit_darwin_amd64
 chmod +x nigit
 
 ./nigit --help
@@ -48,7 +48,7 @@ chmod +x nigit
 **Linux**
 
 ```bash
-wget -O nigit https://github.com/lukasmartinelli/pipecat/releases/download/v0.1/nigit_linux_amd64
+wget -O nigit https://github.com/lukasmartinelli/pipecat/releases/download/v0.1-alpha/nigit_linux_amd64
 chmod +x nigit
 
 ./nigit --help
