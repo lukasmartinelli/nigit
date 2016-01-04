@@ -1,6 +1,23 @@
 # nigit [![Build Status](https://travis-ci.org/lukasmartinelli/nigit.svg)](https://travis-ci.org/lukasmartinelli/nigit)
 
 A web server that wraps around programs and shell scripts and exposes them as API.
+This comes in handy everywhere where you want to expose a legacy
+program to the internet to use it as a service without writing a wrapper script
+in a different language.
+
+Features:
+
+- Expose any legacy program via HTTP API (`nigit <script>` and your done)
+- Processed based
+- Deployable as static binary
+
+## Install
+
+**Install from source**
+
+```bash
+go get github.com/lukasmartinelli/nigit
+```
 
 ## Get Started
 
