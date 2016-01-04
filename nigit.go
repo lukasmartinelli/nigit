@@ -28,6 +28,10 @@ func execProgram(program string, input string) string {
 	return stdout.String()
 }
 
+func urlPath(programPath string) string {
+	return "/" + strings.TrimSuffix(filepath.Base(programPath), filepath.Ext(programPath))
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "nigit"
@@ -43,33 +47,36 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) {
-		program := c.Args().First()
-		if program == "" {
-			fmt.Println("Please provide name of the script to run under nigit")
+		if !c.Args().Present() {
+			fmt.Println("Please provide the names of the scripts to run under nigit")
 			os.Exit(1)
 		}
+		fmt.Println("Serve from port " + c.GlobalString("port"))
 
-		program, err := filepath.Abs(program)
-		if err != nil {
-			fmt.Printf("Cannot get path of %s\n", program)
-			os.Exit(2)
+		for _, program := range c.Args() {
+			programPath, err := filepath.Abs(program)
+			if err != nil {
+				fmt.Printf("Cannot get path of %s\n", program)
+				os.Exit(2)
+			}
+
+			programPath, err = exec.LookPath(programPath)
+			if err != nil {
+				fmt.Printf("Executable program %s not found\n", program)
+				os.Exit(3)
+			}
+
+			serve := func(w http.ResponseWriter, r *http.Request) {
+				buf := new(bytes.Buffer)
+				buf.ReadFrom(r.Body)
+
+				stdout := execProgram(programPath, buf.String())
+				io.WriteString(w, stdout)
+			}
+
+			fmt.Printf("%s -> %s\n", urlPath(programPath), program)
+			http.HandleFunc(urlPath(programPath), serve)
 		}
-
-		programPath, err := exec.LookPath(program)
-		if err != nil {
-			fmt.Printf("Executable program %s not found\n", program)
-			os.Exit(3)
-		}
-
-		serve := func(w http.ResponseWriter, r *http.Request) {
-			buf := new(bytes.Buffer)
-			buf.ReadFrom(r.Body)
-
-			stdout := execProgram(programPath, buf.String())
-			io.WriteString(w, stdout)
-		}
-
-		http.HandleFunc("/", serve)
 		http.ListenAndServe(":"+c.GlobalString("port"), nil)
 	}
 
