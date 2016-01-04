@@ -63,6 +63,44 @@ go get github.com/lukasmartinelli/nigit
 If you are using Windows or 32-bit architectures you need to [download the appropriate binary
 yourself](https://github.com/lukasmartinelli/nigit/releases/latest).
 
+## Advanced Usage
+
+### Pass Arguments
+
+Form pairs or other JSON values are passed as environment variables into the program.
+
+```bash
+#!/bin/bash
+echo "$MY_ARGUMENT"
+```
+
+And now pass an argument.
+
+### Serve Multiple Files
+
+`nigit` can also serve multiple scripts under different paths if you
+append more programs as arguments.
+
+```bash
+nigit echo.sh curl.sh lint.sh
+```
+
+If you pass form or JSON values they will be provided as uppercase
+env vars in your program.
+
+```bash
+curl -X POST -F my_argument=test http://localhost:8000/
+```
+
+This will serve each script under a different HTTP route.
+
+```bash
+Serve from port 8000
+Handle /echo -> echo.sh
+Handle /curl -> curl.sh
+Handle /lint -> lint.sh
+```
+
 ## Use Cases
 
 This use case comes in handy everywhere where you want to expose a legacy
