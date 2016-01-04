@@ -32,6 +32,16 @@ func urlPath(programPath string) string {
 	return "/" + strings.TrimSuffix(filepath.Base(programPath), filepath.Ext(programPath))
 }
 
+func serve(programPath) http.Handler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(r.Body)
+
+		stdout := execProgram(programPath, buf.String())
+		io.WriteString(w, stdout)
+	}
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "nigit"
@@ -64,14 +74,6 @@ func main() {
 			if err != nil {
 				fmt.Printf("Executable program %s not found\n", program)
 				os.Exit(3)
-			}
-
-			serve := func(w http.ResponseWriter, r *http.Request) {
-				buf := new(bytes.Buffer)
-				buf.ReadFrom(r.Body)
-
-				stdout := execProgram(programPath, buf.String())
-				io.WriteString(w, stdout)
 			}
 
 			fmt.Printf("%s -> %s\n", urlPath(programPath), program)
