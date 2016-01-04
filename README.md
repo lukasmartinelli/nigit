@@ -5,6 +5,8 @@ This comes in handy everywhere where you want to expose a legacy
 program to the internet to use it as a service without writing a wrapper script
 in a different language.
 
+<img align="right" alt="nigit cat logo" src="logo.png" />
+
 Features:
 
 - Expose any legacy program via HTTP API (`nigit <script>` and your done)
