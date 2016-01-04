@@ -14,10 +14,11 @@ import (
 	"github.com/codegangsta/cli"
 )
 
-func execProgram(program string, input string) string {
+func execProgram(program string, env []string, input string) string {
 	var stdout bytes.Buffer
 	cmd := exec.Command(program)
 	cmd.Stdin = strings.NewReader(input)
+	cmd.Env = env
 	cmd.Stdout = &stdout
 
 	err := cmd.Run()
@@ -32,14 +33,39 @@ func urlPath(programPath string) string {
 	return "/" + strings.TrimSuffix(filepath.Base(programPath), filepath.Ext(programPath))
 }
 
-func serve(programPath) http.Handler {
-	return func(w http.ResponseWriter, r *http.Request) {
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(r.Body)
-
-		stdout := execProgram(programPath, buf.String())
-		io.WriteString(w, stdout)
+func serveText(programPath string, w http.ResponseWriter, r *http.Request) {
+	env := os.Environ()
+	for k, v := range r.Form {
+		env = append(env, fmt.Sprintf("%s=%s", strings.ToUpper(k), v))
 	}
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r.Body)
+
+	stdout := execProgram(programPath, env, buf.String())
+
+	w.Header().Set("Content-Type", "text/plain")
+	io.WriteString(w, stdout)
+}
+
+func serve(programPath string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		accept := r.Header.Get("Accept")
+		switch accept {
+		case "application/json":
+			w.Header().Set("Content-Type", "application/json")
+		default:
+			serveText(programPath, w, r)
+		}
+	})
+}
+
+func logRequests(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("%s %s\n", r.Method, r.URL)
+		handler.ServeHTTP(w, r)
+	})
 }
 
 func main() {
@@ -76,10 +102,10 @@ func main() {
 				os.Exit(3)
 			}
 
-			fmt.Printf("%s -> %s\n", urlPath(programPath), program)
-			http.HandleFunc(urlPath(programPath), serve)
+			fmt.Printf("Handle %s -> %s\n", urlPath(programPath), program)
+			http.Handle(urlPath(programPath), serve(programPath))
 		}
-		http.ListenAndServe(":"+c.GlobalString("port"), nil)
+		http.ListenAndServe(":"+c.GlobalString("port"), logRequests(http.DefaultServeMux))
 	}
 
 	app.Run(os.Args)
