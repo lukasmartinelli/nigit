@@ -36,7 +36,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "port",
-			Value:  "5432",
+			Value:  "8000",
 			Usage:  "HTTP port",
 			EnvVar: "PORT",
 		},
@@ -70,7 +70,7 @@ func main() {
 		}
 
 		http.HandleFunc("/", serve)
-		http.ListenAndServe(":8000", nil)
+		http.ListenAndServe(":"+c.GlobalString("port"), nil)
 	}
 
 	app.Run(os.Args)
