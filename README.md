@@ -1,17 +1,12 @@
 # nigit [![Build Status](https://travis-ci.org/lukasmartinelli/nigit.svg)](https://travis-ci.org/lukasmartinelli/nigit) ![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)
 
-A web server that wraps around programs and shell scripts and exposes them as API.
+<img align="right" alt="nigit cat logo" src="logo.png" />
+
+Expose any program with a simple call to `nigit <script>` to the web.
+The small web server wraps around the program and exposes them as HTTP API.
 This comes in handy everywhere where you want to expose a legacy
 program to the internet to use it as a service without writing a wrapper script
 in a different language.
-
-<img align="right" alt="nigit cat logo" src="logo.png" />
-
-Features:
-
-- Expose any legacy program via HTTP API (`nigit <script>` and your done)
-- Processed based
-- Deployable as static binary
 
 ## Install
 
