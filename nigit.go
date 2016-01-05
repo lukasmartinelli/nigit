@@ -125,22 +125,20 @@ func main() {
 			fmt.Println("Please provide the names of the scripts to run under nigit")
 			os.Exit(1)
 		}
-		fmt.Println("Serve from port " + c.GlobalString("port"))
+		log.Printf("Serve from port %s with %d seconds timeout\n", c.GlobalString("port"), c.GlobalInt("timeout"))
 
 		for _, program := range c.Args() {
 			programPath, err := filepath.Abs(program)
 			if err != nil {
-				fmt.Printf("Cannot get path of %s\n", program)
-				os.Exit(2)
+				log.Fatalf("Cannot get path of %s\n", program)
 			}
 
 			programPath, err = exec.LookPath(programPath)
 			if err != nil {
-				fmt.Printf("Executable program %s not found\n", program)
-				os.Exit(3)
+				log.Fatalf("Executable program %s not found\n", program)
 			}
 
-			fmt.Printf("Handle %s -> %s\n", urlPath(programPath), program)
+			log.Printf("Handle %s -> %s\n", urlPath(programPath), program)
 			http.Handle(urlPath(programPath), serve(programPath, c.GlobalInt("timeout")))
 		}
 		http.ListenAndServe(":"+c.GlobalString("port"), logRequests(http.DefaultServeMux))
