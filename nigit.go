@@ -100,15 +100,34 @@ func handleJson(r *http.Request) (envs []string, input *bytes.Buffer, err error)
 	return
 }
 
-func handleForm(r *http.Request) (envs []string, input *bytes.Buffer) {
+func handleForm(r *http.Request) (envs []string, input *bytes.Buffer, err error) {
+	input = new(bytes.Buffer)
 	r.ParseMultipartForm(5 * 1000 * 1000)
+
+	// If it is not a multipart upload the form can actuall be nil. Stupid design decision
+	if r.MultipartForm != nil {
+		if fileHeaders, ok := r.MultipartForm.File["stdin"]; ok {
+			// If users uploaded a specific file with the name stdin we us this as source
+			file, err := fileHeaders[0].Open()
+			defer file.Close()
+
+			if err != nil {
+				return nil, nil, err
+			}
+
+			input.ReadFrom(file)
+		}
+	} else if stdinField, ok := r.Form["stdin"]; ok {
+		// If users have a stdin field we pass that as input to the program
+		input.WriteString(stdinField[0])
+		delete(r.Form, "stdin")
+	}
 
 	// All form arguments are injected into the environment of the executed child program
 	for k, v := range r.Form {
 		envs = append(envs, fmt.Sprintf("%s=%s", strings.ToUpper(k), strings.Join(v, " ")))
 	}
 
-	input.ReadFrom(r.Body)
 	return
 }
 
@@ -135,9 +154,6 @@ func handleInput(w http.ResponseWriter, r *http.Request, programPath string, tim
 
 func serve(programPath string, timeout int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var envs []string
-		var input *bytes.Buffer
-
 		contentType := r.Header.Get("Content-Type")
 
 		switch contentType {
@@ -150,7 +166,12 @@ func serve(programPath string, timeout int) http.Handler {
 			}
 			handleInput(w, r, programPath, timeout, envs, input)
 		default:
-			envs, input = handleForm(r)
+			envs, input, err := handleForm(r)
+			if err != nil {
+				log.Warningf("Invalid request %s", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			handleInput(w, r, programPath, timeout, envs, input)
 		}
 
