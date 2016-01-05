@@ -33,10 +33,12 @@ func urlPath(programPath string) string {
 	return "/" + strings.TrimSuffix(filepath.Base(programPath), filepath.Ext(programPath))
 }
 
-func serveText(programPath string, w http.ResponseWriter, r *http.Request) {
+func handleForm(programPath string, w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(5 * 1000 * 1000)
+
 	env := os.Environ()
 	for k, v := range r.Form {
-		env = append(env, fmt.Sprintf("%s=%s", strings.ToUpper(k), v))
+		env = append(env, fmt.Sprintf("%s=%s", strings.ToUpper(k), strings.Join(v, " ")))
 	}
 
 	buf := new(bytes.Buffer)
@@ -56,7 +58,7 @@ func serve(programPath string) http.Handler {
 		case "application/json":
 			w.Header().Set("Content-Type", "application/json")
 		default:
-			serveText(programPath, w, r)
+			handleForm(programPath, w, r)
 		}
 	})
 }
