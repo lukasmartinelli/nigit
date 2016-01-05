@@ -2,8 +2,6 @@
 
 <img align="right" alt="nigit cat logo" src="logo.png" />
 
-**Nigit is still in a very early hacking stage, it is not yet production ready.**
-
 Expose any program with a simple call to `nigit <script>` to the web.
 The small web server wraps around the program and exposes it as HTTP API.
 This comes in handy whenever you want to expose a legacy
