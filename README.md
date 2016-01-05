@@ -12,6 +12,27 @@ in a different language.
 
 ## Get Started
 
+In this example we create a service to download the PDF version of websites using the
+[wkhtmltopdf](http://wkhtmltopdf.org/) tool.
+
+Create a bash script `html2pdf.sh` and make it executable.
+
+```bash
+#!/bin/bash
+wkhtmltopdf "$URL" page.pdf > /dev/null 2>&1
+cat page.pdf
+```
+
+Now execute `nigit html2pdf.sh` and request a PDF of the Google homepage.
+
+```
+curl -o google.pdf http://localhost:8000/html2pdf?url=http://google.com
+```
+
+And that's all you needed to do to make a web service out of `wkhtml2pdf`.
+
+## Ping Example
+
 Create a bash script `echo.sh` which will echo the input from `stdin`.
 
 ```bash
