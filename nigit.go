@@ -27,20 +27,24 @@ var uncoloredFormat = logging.MustStringFormatter(
 func execProgram(program string, env []string, input string, timeout int) bytes.Buffer {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
+	programName := filepath.Base(program)
 	cmd := exec.Command(program)
 	cmd.Stdin = strings.NewReader(input)
-	cmd.Env = env
 	cmd.Stdout = &stdout
-	cmd.Stderr = &stdout
+	cmd.Stderr = &stderr
+	cmd.Env = env
+
+	output := func() string {
+		return strings.Trim(stderr.String()+stdout.String(), "\n")
+	}
 
 	reportFailure := func() {
-		log.Errorf("Execution of program %s failed", filepath.Base(program))
-		log.Errorf("%s", stderr.String())
-		log.Errorf("%s", stdout.String())
+		log.Errorf("Execution of program %s failed\n%s", programName, output())
 	}
 
 	if err := cmd.Start(); err != nil {
 		reportFailure()
+		return stdout
 	}
 
 	done := make(chan error, 1)
@@ -53,12 +57,12 @@ func execProgram(program string, env []string, input string, timeout int) bytes.
 		if err := cmd.Process.Kill(); err != nil {
 			log.Fatal("Cannot kill process: ", err)
 		}
-		log.Debugf("Process %s killed", filepath.Base(program))
+		log.Debugf("Process %s killed", programName)
 	case err := <-done:
 		if err != nil {
 			reportFailure()
 		} else {
-			log.Debugf("Executed %s without error", filepath.Base(program))
+			log.Debugf("Executed %s without error", programName)
 		}
 	}
 
