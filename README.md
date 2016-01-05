@@ -118,7 +118,7 @@ curl -X POST -F stdin="Ping" http://localhost:8000/
 # for short input you can even use query strings
 curl http://localhost:8000/?stdin=Ping
 # post a file to the web api
-curl -X POST -F stdin=@greetungs.txt http://localhost:8000/
+curl -X POST -F stdin=@greetings.txt http://localhost:8000/
 ```
 
 
@@ -153,6 +153,17 @@ This will serve each script under a different HTTP route.
 Handle /echo -> echo.sh
 Handle /curl -> curl.sh
 Handle /lint -> lint.sh
+```
+
+### Mime Type
+
+`nigit` serves the response either as `text/plain` if no `Accept` header is specified or
+exactly with the mime type specified by the `Accept` header.
+
+If you wrap around a program that outputs valid JSON you need to set the `Accept` header and you are good.
+
+```bash
+curl -H "Accept: application/json" http://localhost:8000/
 ```
 
 ## Develop
