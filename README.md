@@ -5,17 +5,17 @@
 **Nigit is still in a very early hacking stage, it is not yet production ready.**
 
 Expose any program with a simple call to `nigit <script>` to the web.
-The small web server wraps around the program and exposes them as HTTP API.
-This comes in handy everywhere where you want to expose a legacy
-program to the internet to use it as a service without writing a wrapper script
-in a different language.
+The small web server wraps around the program and exposes it as HTTP API.
+This comes in handy whenever you want to expose a legacy
+program to the internet without writing a complicated wrapper script
+and webserver.
 
 ## Get Started
 
 In this example we create a service to download the PDF version of websites using the
 [wkhtmltopdf](http://wkhtmltopdf.org/) tool.
 
-Create a bash script `html2pdf.sh` and make it executable with `chmod +x html2pdf.sh`.
+Create the bash script `html2pdf.sh` and make it executable with `chmod +x html2pdf.sh`.
 
 ```bash
 #!/bin/bash
@@ -70,44 +70,73 @@ go get github.com/lukasmartinelli/nigit
 If you are using Windows or 32-bit architectures you need to [download the appropriate binary
 yourself](https://github.com/lukasmartinelli/nigit/releases/latest).
 
-## Advanced Usage
+## Use Cases
+
+This use case comes in handy everywhere where you want to expose a legacy
+program to the internet to use it as a service without writing a wrapper
+script in a different language.
+
+- Generate PDF
+- Compilers and linters
+- Converters like `gdal` and `pandoc`
+- Spell Checker like `aspell`
+
+## Usage
 
 ### Pass Arguments
 
-Form pairs or other JSON values are passed as environment variables into the program.
+Form arguments or query strings are passed as environment variables into the program.
 
 ```bash
 #!/bin/bash
 echo "$MY_ARGUMENT"
 ```
 
-# More Usage Examples
+You can specify them as form values or alternatively post a JSON file which is more convenient
+in JavaScript.
 
-## Ping Example
+```bash
+# pass as form values
+curl -X POST -F my_argument=test http://localhost:8000/
+# pass as query string
+curl http://localhost:8000/?my_argument=test
+# pass as JSON
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"envs": ["MY_ARGUMENT=test"]}' \
+  http://localhost:8000/hlint
+```
 
-Create a bash script `echo.sh` which will echo the input from `stdin`.
+### Upload File
+
+Uploaded content is provided as `stdin` to the file.
+You can either specify it as file upload or form value.
+In both cases the field must be named `stdin`.
+
+```bash
+# set value of stdin in form
+curl -X POST -F stdin="Ping" http://localhost:8000/
+# for short input you can even use query strings
+curl http://localhost:8000/?stdin=Ping
+# post a file to the web api
+curl -X POST -F stdin=@greetungs.txt http://localhost:8000/
+```
+
+
+You can also specify a `stdin` field in JSON to pass something to the script.
+
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"stdin": "Ping", "envs": ["MY_ARGUMENT=test"]}' \
+  http://localhost:8000/hlint
+```
+
+If you are using a Bash script as wrapper you can read in the stdin with `cat`.
 
 ```bash
 #!/bin/bash
-read input
-echo "$input"
+greetings=$(cat)
+echo "$greetings"
 ```
-
-Now execute it with `nigit echo.sh`.
-A HTTP server has now been started on `localhost:8000`.
-Let's execute an API call.
-
-```bash
-curl -X POST -d "Can you hear me?" http://localhost:8000/
-```
-
-You should now receive the same content you sent to the server.
-
-```
-Can you hear me?
-```
-
-And now pass an argument.
 
 ### Serve Multiple Files
 
@@ -118,33 +147,36 @@ append more programs as arguments.
 nigit echo.sh curl.sh lint.sh
 ```
 
-If you pass form or JSON values they will be provided as uppercase
-env vars in your program.
-
-```bash
-curl -X POST -F my_argument=test http://localhost:8000/
-```
-
 This will serve each script under a different HTTP route.
 
 ```bash
-Serve from port 8000
 Handle /echo -> echo.sh
 Handle /curl -> curl.sh
 Handle /lint -> lint.sh
 ```
 
-## Use Cases
+## Develop
 
-This use case comes in handy everywhere where you want to expose a legacy
-program to the internet to use it as a service without writing a wrapper
-script in a different language.
+You need a [Go workspace](https://golang.org/doc/code.html) to get started. 
 
-- Generate PDF
-- Compile C++ code
-- Lint code
+### Install Dependencies
 
-## Cross Compile Release
+Several dependencies are required.
+
+```
+go get 	"github.com/codegangsta/cli"
+go get "github.com/op/go-logging"
+```
+
+### Build
+
+Create a executable using the standard Go build tool.
+
+```
+go build
+```
+
+### Cross Compile Release
 
 We use [gox](https://github.com/mitchellh/gox) to create distributable
 binaries for Windows, OSX and Linux.
@@ -153,8 +185,8 @@ binaries for Windows, OSX and Linux.
 docker run --rm -v "$(pwd)":/usr/src/nigit -w /usr/src/nigit tcnksm/gox:1.4.2-light
 ```
 
-## Pass JSON
+## Security
 
-```bash
-curl -v -X POST -H "Content-Type: application/json" -d '{"envs": ["GIT_REPOSITORY=https://github.com/sdiehl/tinyjit.git"]}' http://localhost:8000/hlint
-```
+It is quite dangerous to expose a shell script to the internet. I also haven't tested any exploits
+yet but my guess is a shell script takes input from external is always vulnerable.
+
