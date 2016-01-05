@@ -39,13 +39,18 @@ func urlPath(programPath string) string {
 func handleForm(programPath string, w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(5 * 1000 * 1000)
 
+	// All form arguments are injected into the environment of the executed child program
 	env := os.Environ()
 	for k, v := range r.Form {
 		env = append(env, fmt.Sprintf("%s=%s", strings.ToUpper(k), strings.Join(v, " ")))
 	}
 
+	// Important HTTP headers are passed to the child program so it can decide what content it wants to output
 	accept := r.Header.Get("Accept")
 	env = append(env, fmt.Sprintf("%s=%s", "ACCEPT", accept))
+
+	env = append(env, fmt.Sprintf("%s=%s", "HOST", r.Header.Get("Host")))
+	env = append(env, fmt.Sprintf("%s=%s", "USER_AGENT", r.Header.Get("User-Agent")))
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(r.Body)
