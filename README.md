@@ -15,7 +15,7 @@ in a different language.
 In this example we create a service to download the PDF version of websites using the
 [wkhtmltopdf](http://wkhtmltopdf.org/) tool.
 
-Create a bash script `html2pdf.sh` and make it executable.
+Create a bash script `html2pdf.sh` and make it executable with `chmod +x html2pdf.sh`.
 
 ```bash
 #!/bin/bash
@@ -23,37 +23,21 @@ wkhtmltopdf "$URL" page.pdf > /dev/null 2>&1
 cat page.pdf
 ```
 
-Now execute `nigit html2pdf.sh` and request a PDF of the Google homepage.
+Start up the server on port `8000`. It will serve the script under `/html2pdf`.
 
+```bash
+nigit html2pdf.sh
 ```
+
+Download the PDF of `http://google.com` using `curl`. The `url` parameter is injected as `$URL` environment variable
+in the shell script above.
+
+```bash
 curl -o google.pdf http://localhost:8000/html2pdf?url=http://google.com
 ```
 
-And that's all you needed to do to make a web service out of `wkhtml2pdf`.
+And that's all you needed to do in order to expose `wkhtml2pdf` as useful webservice.
 
-## Ping Example
-
-Create a bash script `echo.sh` which will echo the input from `stdin`.
-
-```bash
-#!/bin/bash
-read input
-echo "$input"
-```
-
-Now execute it with `nigit echo.sh`.
-A HTTP server has now been started on `localhost:8000`.
-Let's execute an API call.
-
-```bash
-curl -X POST -d "Can you hear me?" http://localhost:8000/
-```
-
-You should now receive the same content you sent to the server.
-
-```
-Can you hear me?
-```
 
 ## Install
 
@@ -95,6 +79,32 @@ Form pairs or other JSON values are passed as environment variables into the pro
 ```bash
 #!/bin/bash
 echo "$MY_ARGUMENT"
+```
+
+# More Usage Examples
+
+## Ping Example
+
+Create a bash script `echo.sh` which will echo the input from `stdin`.
+
+```bash
+#!/bin/bash
+read input
+echo "$input"
+```
+
+Now execute it with `nigit echo.sh`.
+A HTTP server has now been started on `localhost:8000`.
+Let's execute an API call.
+
+```bash
+curl -X POST -d "Can you hear me?" http://localhost:8000/
+```
+
+You should now receive the same content you sent to the server.
+
+```
+Can you hear me?
 ```
 
 And now pass an argument.
