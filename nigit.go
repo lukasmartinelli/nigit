@@ -39,9 +39,10 @@ func execProgram(program string, extraEnv []string, input string, timeout int) b
 
 	reportFailure := func() {
 		log.Errorf(
-			"Execution of program %s failed with %s\n%s",
+			"Execution of program %s failed with %s\n%s\n%s",
 			programName,
 			cmd.ProcessState.String(),
+			strings.Join(extraEnv, " "),
 			strings.Trim(stderr.String(), "\n"))
 	}
 
