@@ -12,13 +12,19 @@ function clone_repo() {
     echo "$working_dir"
 }
 
+# because we have the errexit option set we need to suppress exit codes
+# from the linter as we still want to pass back the output
+function suppress_lint_error() {
+    local _="$?"
+}
+
 function lint_source() {
     local repo_path=$(clone_repo)
 
     if [ "$ACCEPT" == "application/json" ]; then
-        hlint "$repo_path" --json
+        hlint "$repo_path" --json || suppress_lint_error
     else
-        hlint "$repo_path" --color=never
+        hlint "$repo_path" --color=never || suppress_lint_error
     fi
 
     rm -rf "$repo_path"

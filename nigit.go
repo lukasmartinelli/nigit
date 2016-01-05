@@ -24,9 +24,12 @@ var uncoloredFormat = logging.MustStringFormatter(
 	`%{level:.7s} ▶ %{message}`,
 )
 
-func execProgram(program string, env []string, input string, timeout int) bytes.Buffer {
+func execProgram(program string, extraEnv []string, input string, timeout int) bytes.Buffer {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
+
+	env := append(os.Environ(), extraEnv...)
+
 	programName := filepath.Base(program)
 	cmd := exec.Command(program)
 	cmd.Stdin = strings.NewReader(input)
@@ -34,12 +37,12 @@ func execProgram(program string, env []string, input string, timeout int) bytes.
 	cmd.Stderr = &stderr
 	cmd.Env = env
 
-	output := func() string {
-		return strings.Trim(stderr.String()+stdout.String(), "\n")
-	}
-
 	reportFailure := func() {
-		log.Errorf("Execution of program %s failed\n%s", programName, output())
+		log.Errorf(
+			"Execution of program %s failed with %s\n%s",
+			programName,
+			cmd.ProcessState.String(),
+			strings.Trim(stderr.String(), "\n"))
 	}
 
 	if err := cmd.Start(); err != nil {
@@ -62,7 +65,7 @@ func execProgram(program string, env []string, input string, timeout int) bytes.
 		if err != nil {
 			reportFailure()
 		} else {
-			log.Debugf("Executed %s without error", programName)
+			log.Debugf("Executed %s without error in %s", programName, cmd.ProcessState.UserTime())
 		}
 	}
 
@@ -77,7 +80,7 @@ func handleForm(programPath string, w http.ResponseWriter, r *http.Request, time
 	r.ParseMultipartForm(5 * 1000 * 1000)
 
 	// All form arguments are injected into the environment of the executed child program
-	env := os.Environ()
+	var env []string
 	for k, v := range r.Form {
 		env = append(env, fmt.Sprintf("%s=%s", strings.ToUpper(k), strings.Join(v, " ")))
 	}
