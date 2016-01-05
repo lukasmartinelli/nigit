@@ -2,9 +2,9 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"os/exec"
@@ -36,12 +36,6 @@ func urlPath(programPath string) string {
 	return "/" + strings.TrimSuffix(filepath.Base(programPath), filepath.Ext(programPath))
 }
 
-func isJSON(b []byte) bool {
-	var v interface{}
-	err := json.Unmarshal(b, &v)
-	return err == nil
-}
-
 func handleForm(programPath string, w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(5 * 1000 * 1000)
 
@@ -58,8 +52,11 @@ func handleForm(programPath string, w http.ResponseWriter, r *http.Request) {
 
 	stdout := execProgram(programPath, env, buf.String())
 
-	if isJSON(stdout.Bytes()) {
-		w.Header().Set("Content-Type", "application/json")
+	// We reply with the requested content type as we do not know
+	// what the program or script will ever return while the client does
+	mediatype, _, err := mime.ParseMediaType(accept)
+	if err == nil && mediatype != "*/*" {
+		w.Header().Set("Content-Type", mediatype)
 		stdout.WriteTo(w)
 	} else {
 		w.Header().Set("Content-Type", "text/plain")
