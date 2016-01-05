@@ -2,9 +2,9 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -14,23 +14,32 @@ import (
 	"github.com/codegangsta/cli"
 )
 
-func execProgram(program string, env []string, input string) string {
+func execProgram(program string, env []string, input string) bytes.Buffer {
 	var stdout bytes.Buffer
+	var stderr bytes.Buffer
 	cmd := exec.Command(program)
 	cmd.Stdin = strings.NewReader(input)
 	cmd.Env = env
 	cmd.Stdout = &stdout
+	cmd.Stderr = &stdout
 
 	err := cmd.Run()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Errorf("Execution of program %s failed\n", program)
+		fmt.Errorf("%s\n", stderr)
 	}
 
-	return stdout.String()
+	return stdout
 }
 
 func urlPath(programPath string) string {
 	return "/" + strings.TrimSuffix(filepath.Base(programPath), filepath.Ext(programPath))
+}
+
+func isJSON(b []byte) bool {
+	var v interface{}
+	err := json.Unmarshal(b, &v)
+	return err == nil
 }
 
 func handleForm(programPath string, w http.ResponseWriter, r *http.Request) {
@@ -41,20 +50,28 @@ func handleForm(programPath string, w http.ResponseWriter, r *http.Request) {
 		env = append(env, fmt.Sprintf("%s=%s", strings.ToUpper(k), strings.Join(v, " ")))
 	}
 
+	accept := r.Header.Get("Accept")
+	env = append(env, fmt.Sprintf("%s=%s", "ACCEPT", accept))
+
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(r.Body)
 
 	stdout := execProgram(programPath, env, buf.String())
 
-	w.Header().Set("Content-Type", "text/plain")
-	io.WriteString(w, stdout)
+	if isJSON(stdout.Bytes()) {
+		w.Header().Set("Content-Type", "application/json")
+		stdout.WriteTo(w)
+	} else {
+		w.Header().Set("Content-Type", "text/plain")
+		io.WriteString(w, stdout.String())
+	}
 }
 
 func serve(programPath string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		accept := r.Header.Get("Accept")
-		switch accept {
+		contentType := r.Header.Get("Content-Type")
+		switch contentType {
 		case "application/json":
 			w.Header().Set("Content-Type", "application/json")
 		default:
