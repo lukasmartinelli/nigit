@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"mime"
 	"net/http"
 	"os"
@@ -14,6 +13,15 @@ import (
 	"time"
 
 	"github.com/codegangsta/cli"
+	"github.com/op/go-logging"
+)
+
+var log = logging.MustGetLogger("nigit")
+var colorFormat = logging.MustStringFormatter(
+	`%{color}%{level:.7s} ▶ %{message}%{color:reset}`,
+)
+var uncoloredFormat = logging.MustStringFormatter(
+	`%{level:.7s} ▶ %{message}`,
 )
 
 func execProgram(program string, env []string, input string, timeout int) bytes.Buffer {
@@ -26,11 +34,11 @@ func execProgram(program string, env []string, input string, timeout int) bytes.
 	cmd.Stderr = &stdout
 
 	if err := cmd.Start(); err != nil {
-		log.Println(err)
+		log.Errorf("%s", err)
 	}
 	timer := time.AfterFunc(time.Duration(timeout)*time.Second, func() {
 		cmd.Process.Kill()
-		log.Printf("Process %s timed out", filepath.Base(program))
+		log.Warningf("Process %s timed out", filepath.Base(program))
 	})
 	err := cmd.Wait()
 	timer.Stop()
@@ -95,7 +103,7 @@ func serve(programPath string, timeout int) http.Handler {
 
 func logRequests(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s\n", r.Method, r.URL)
+		log.Infof("%s %s\n", r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
 }
@@ -118,6 +126,11 @@ func main() {
 			Usage:  "Timeout in seconds after process is stopped",
 			EnvVar: "TIMEOUT",
 		},
+		cli.BoolFlag{
+			Name:   "no-color",
+			Usage:  "Do not colorize output",
+			EnvVar: "NO_COLOR",
+		},
 	}
 
 	app.Action = func(c *cli.Context) {
@@ -125,20 +138,27 @@ func main() {
 			fmt.Println("Please provide the names of the scripts to run under nigit")
 			os.Exit(1)
 		}
-		log.Printf("Serve from port %s with %d seconds timeout\n", c.GlobalString("port"), c.GlobalInt("timeout"))
+
+		if c.GlobalBool("no-color") {
+			logging.SetFormatter(uncoloredFormat)
+		} else {
+			logging.SetFormatter(colorFormat)
+		}
+
+		log.Infof("Serve from port %s with %d seconds timeout", c.GlobalString("port"), c.GlobalInt("timeout"))
 
 		for _, program := range c.Args() {
 			programPath, err := filepath.Abs(program)
 			if err != nil {
-				log.Fatalf("Cannot get path of %s\n", program)
+				log.Fatalf("Cannot get path of %s", program)
 			}
 
 			programPath, err = exec.LookPath(programPath)
 			if err != nil {
-				log.Fatalf("Executable program %s not found\n", program)
+				log.Fatalf("Executable program %s not found", program)
 			}
 
-			log.Printf("Handle %s -> %s\n", urlPath(programPath), program)
+			log.Infof("Handle %s -> %s", urlPath(programPath), program)
 			http.Handle(urlPath(programPath), serve(programPath, c.GlobalInt("timeout")))
 		}
 		http.ListenAndServe(":"+c.GlobalString("port"), logRequests(http.DefaultServeMux))
