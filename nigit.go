@@ -4,17 +4,19 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"mime"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/codegangsta/cli"
 )
 
-func execProgram(program string, env []string, input string) bytes.Buffer {
+func execProgram(program string, env []string, input string, timeout int) bytes.Buffer {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd := exec.Command(program)
@@ -23,7 +25,16 @@ func execProgram(program string, env []string, input string) bytes.Buffer {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stdout
 
-	err := cmd.Run()
+	if err := cmd.Start(); err != nil {
+		log.Println(err)
+	}
+	timer := time.AfterFunc(time.Duration(timeout)*time.Second, func() {
+		cmd.Process.Kill()
+		log.Printf("Process %s timed out", filepath.Base(program))
+	})
+	err := cmd.Wait()
+	timer.Stop()
+
 	if err != nil {
 		fmt.Errorf("Execution of program %s failed\n", program)
 		fmt.Errorf("%s\n", stderr)
@@ -36,7 +47,7 @@ func urlPath(programPath string) string {
 	return "/" + strings.TrimSuffix(filepath.Base(programPath), filepath.Ext(programPath))
 }
 
-func handleForm(programPath string, w http.ResponseWriter, r *http.Request) {
+func handleForm(programPath string, w http.ResponseWriter, r *http.Request, timeout int) {
 	r.ParseMultipartForm(5 * 1000 * 1000)
 
 	// All form arguments are injected into the environment of the executed child program
@@ -55,7 +66,7 @@ func handleForm(programPath string, w http.ResponseWriter, r *http.Request) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(r.Body)
 
-	stdout := execProgram(programPath, env, buf.String())
+	stdout := execProgram(programPath, env, buf.String(), timeout)
 
 	// We reply with the requested content type as we do not know
 	// what the program or script will ever return while the client does
@@ -69,7 +80,7 @@ func handleForm(programPath string, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func serve(programPath string) http.Handler {
+func serve(programPath string, timeout int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		contentType := r.Header.Get("Content-Type")
@@ -77,14 +88,14 @@ func serve(programPath string) http.Handler {
 		case "application/json":
 			w.Header().Set("Content-Type", "application/json")
 		default:
-			handleForm(programPath, w, r)
+			handleForm(programPath, w, r, timeout)
 		}
 	})
 }
 
 func logRequests(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("%s %s\n", r.Method, r.URL)
+		log.Printf("%s %s\n", r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
 }
@@ -100,6 +111,12 @@ func main() {
 			Value:  "8000",
 			Usage:  "HTTP port",
 			EnvVar: "PORT",
+		},
+		cli.IntFlag{
+			Name:   "timeout",
+			Value:  5,
+			Usage:  "Timeout in seconds after process is stopped",
+			EnvVar: "TIMEOUT",
 		},
 	}
 
@@ -124,7 +141,7 @@ func main() {
 			}
 
 			fmt.Printf("Handle %s -> %s\n", urlPath(programPath), program)
-			http.Handle(urlPath(programPath), serve(programPath))
+			http.Handle(urlPath(programPath), serve(programPath, c.GlobalInt("timeout")))
 		}
 		http.ListenAndServe(":"+c.GlobalString("port"), logRequests(http.DefaultServeMux))
 	}
