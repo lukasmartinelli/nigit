@@ -119,3 +119,9 @@ binaries for Windows, OSX and Linux.
 ```bash
 docker run --rm -v "$(pwd)":/usr/src/nigit -w /usr/src/nigit tcnksm/gox:1.4.2-light
 ```
+
+## Pass JSON
+
+```bash
+curl -v -X POST -H "Content-Type: application/json" -d '{"envs": ["GIT_REPOSITORY=https://github.com/sdiehl/tinyjit.git"]}' http://localhost:8000/hlint
+```
