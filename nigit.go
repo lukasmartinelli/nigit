@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -24,6 +25,8 @@ var uncoloredFormat = logging.MustStringFormatter(
 	`%{level:.7s} ▶ %{message}`,
 )
 
+// Execute program in a given time frame and deal and log errors
+// if programm exits successfully the full stdout output is returned
 func execProgram(program string, extraEnv []string, input string, timeout int) bytes.Buffer {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -73,30 +76,49 @@ func execProgram(program string, extraEnv []string, input string, timeout int) b
 	return stdout
 }
 
+// Get url route of a program path
 func urlPath(programPath string) string {
 	return "/" + strings.TrimSuffix(filepath.Base(programPath), filepath.Ext(programPath))
 }
 
-func handleForm(programPath string, w http.ResponseWriter, r *http.Request, timeout int) {
+type JsonProgramArgs struct {
+	Envs  []string
+	Stdin string
+}
+
+func handleJson(r *http.Request) (envs []string, input *bytes.Buffer, err error) {
+	decoder := json.NewDecoder(r.Body)
+
+	var args JsonProgramArgs
+	err = decoder.Decode(&args)
+	if err != nil {
+		return
+	}
+
+	envs = args.Envs
+	input = bytes.NewBufferString(args.Stdin)
+	return
+}
+
+func handleForm(r *http.Request) (envs []string, input *bytes.Buffer) {
 	r.ParseMultipartForm(5 * 1000 * 1000)
 
 	// All form arguments are injected into the environment of the executed child program
-	var env []string
 	for k, v := range r.Form {
-		env = append(env, fmt.Sprintf("%s=%s", strings.ToUpper(k), strings.Join(v, " ")))
+		envs = append(envs, fmt.Sprintf("%s=%s", strings.ToUpper(k), strings.Join(v, " ")))
 	}
 
-	// Important HTTP headers are passed to the child program so it can decide what content it wants to output
+	input.ReadFrom(r.Body)
+	return
+}
+
+func handleInput(w http.ResponseWriter, r *http.Request, programPath string, timeout int, envs []string, input *bytes.Buffer) {
+	// Important HTTP headers are passed to the child program
 	accept := r.Header.Get("Accept")
-	env = append(env, fmt.Sprintf("%s=%s", "ACCEPT", accept))
+	envs = append(envs, "ACCEPT="+accept)
+	envs = append(envs, "HOST="+r.Header.Get("Host"))
 
-	env = append(env, fmt.Sprintf("%s=%s", "HOST", r.Header.Get("Host")))
-	env = append(env, fmt.Sprintf("%s=%s", "USER_AGENT", r.Header.Get("User-Agent")))
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(r.Body)
-
-	stdout := execProgram(programPath, env, buf.String(), timeout)
+	stdout := execProgram(programPath, envs, input.String(), timeout)
 
 	// We reply with the requested content type as we do not know
 	// what the program or script will ever return while the client does
@@ -108,18 +130,30 @@ func handleForm(programPath string, w http.ResponseWriter, r *http.Request, time
 		w.Header().Set("Content-Type", "text/plain")
 		io.WriteString(w, stdout.String())
 	}
+
 }
 
 func serve(programPath string, timeout int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var envs []string
+		var input *bytes.Buffer
 
 		contentType := r.Header.Get("Content-Type")
+
 		switch contentType {
 		case "application/json":
-			w.Header().Set("Content-Type", "application/json")
+			envs, input, err := handleJson(r)
+			if err != nil {
+				log.Warningf("Invalid request %s", err)
+				http.Error(w, err.Error(), http.StatusNotImplemented)
+				return
+			}
+			handleInput(w, r, programPath, timeout, envs, input)
 		default:
-			handleForm(programPath, w, r, timeout)
+			envs, input = handleForm(r)
+			handleInput(w, r, programPath, timeout, envs, input)
 		}
+
 	})
 }
 
