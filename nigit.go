@@ -33,19 +33,33 @@ func execProgram(program string, env []string, input string, timeout int) bytes.
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stdout
 
-	if err := cmd.Start(); err != nil {
-		log.Errorf("%s", err)
+	reportFailure := func() {
+		log.Errorf("Execution of program %s failed", filepath.Base(program))
+		log.Errorf("%s", stderr.String())
+		log.Errorf("%s", stdout.String())
 	}
-	timer := time.AfterFunc(time.Duration(timeout)*time.Second, func() {
-		cmd.Process.Kill()
-		log.Warningf("Process %s timed out", filepath.Base(program))
-	})
-	err := cmd.Wait()
-	timer.Stop()
 
-	if err != nil {
-		fmt.Errorf("Execution of program %s failed\n", program)
-		fmt.Errorf("%s\n", stderr)
+	if err := cmd.Start(); err != nil {
+		reportFailure()
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case <-time.After(time.Duration(timeout) * time.Second):
+		if err := cmd.Process.Kill(); err != nil {
+			log.Fatal("Cannot kill process: ", err)
+		}
+		log.Debugf("Process %s killed", filepath.Base(program))
+	case err := <-done:
+		if err != nil {
+			reportFailure()
+		} else {
+			log.Debugf("Executed %s without error", filepath.Base(program))
+		}
 	}
 
 	return stdout
@@ -103,7 +117,7 @@ func serve(programPath string, timeout int) http.Handler {
 
 func logRequests(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Infof("%s %s\n", r.Method, r.URL)
+		log.Infof("%s %s", r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
 }
