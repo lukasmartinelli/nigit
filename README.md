@@ -13,29 +13,17 @@ and webserver.
 In this example we create a service to download the PDF version of websites using the
 [wkhtmltopdf](http://wkhtmltopdf.org/) tool.
 
-Create the bash script `html2pdf.sh` and make it executable with `chmod +x html2pdf.sh`.
+1. Create the bash script `html2pdf.sh` and make it executable with `chmod +x html2pdf.sh`.
+  ```bash
+  #!/bin/bash
+  wkhtmltopdf "$URL" page.pdf > /dev/null 2>&1
+  cat page.pdf
+  ```
 
-```bash
-#!/bin/bash
-wkhtmltopdf "$URL" page.pdf > /dev/null 2>&1
-cat page.pdf
-```
-
-Start up the server on port `8000`. It will serve the script under `/html2pdf`.
-
-```bash
-nigit html2pdf.sh
-```
-
-Download the PDF of `http://google.com` using `curl`. The `url` parameter is injected as `$URL` environment variable
-in the shell script above.
-
-```bash
-curl -o google.pdf http://localhost:8000/html2pdf?url=http://google.com
-```
+2. Start up the server with `nigit html2pdf.sh`.
+3. Download the PDF with `  curl -o google.pdf http://localhost:8000/html2pdf?url=http://google.com`
 
 And that's all you needed to do in order to expose `wkhtml2pdf` as useful webservice.
-
 
 ## Install
 
