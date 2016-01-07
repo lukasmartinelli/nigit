@@ -1,6 +1,6 @@
 # nigit [![Build Status](https://travis-ci.org/lukasmartinelli/nigit.svg)](https://travis-ci.org/lukasmartinelli/nigit) ![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)
 
-<img align="right" alt="nigit cat logo" src="logo.png" />
+<img align="right" alt="nigit cat logo" src="nigit.png" />
 
 Expose any program with a simple call to `nigit <script>` to the web.
 The small web server wraps around the program and exposes it as HTTP API.
@@ -56,16 +56,16 @@ go get github.com/lukasmartinelli/nigit
 If you are using Windows or 32-bit architectures you need to [download the appropriate binary
 yourself](https://github.com/lukasmartinelli/nigit/releases/latest).
 
-## Use Cases
+## Examples
 
-This use case comes in handy everywhere where you want to expose a legacy
-program to the internet to use it as a service without writing a wrapper
-script in a different language.
+How you can use `nigit` to build small and concise services:
 
-- Generate PDF
-- Compilers and linters
-- Converters like `gdal` and `pandoc`
-- Spell Checker like `aspell`
+- PDF build service using `pdflatex`
+- Convert DOCX files to Markdown with `pandoc`
+- [Image cropping with `imagemagick`]
+- Convert WAV to MP4 with `avconf`
+- Transpile code with `BabelJS`
+- Lint Shell scripts with `shellcheck`
 
 ## Usage
 
@@ -161,7 +161,7 @@ You need a [Go workspace](https://golang.org/doc/code.html) to get started.
 Several dependencies are required.
 
 ```
-go get 	"github.com/codegangsta/cli"
+go get "github.com/codegangsta/cli"
 go get "github.com/op/go-logging"
 ```
 
@@ -186,4 +186,3 @@ docker run --rm -v "$(pwd)":/usr/src/nigit -w /usr/src/nigit tcnksm/gox:1.4.2-li
 
 It is quite dangerous to expose a shell script to the internet. I also haven't tested any exploits
 yet but my guess is a shell script takes input from external is always vulnerable.
-
