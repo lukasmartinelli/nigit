@@ -5,8 +5,8 @@
 Expose any program with a simple call to `nigit <script>` to the web.
 The small web server wraps around the program and exposes it as HTTP API.
 This comes in handy whenever you want to expose a legacy
-program to the internet without writing a complicated wrapper script
-and webserver.
+program to the internet without writing a web application and doing complicated
+subprocessing yourself.
 
 ## Get Started
 
