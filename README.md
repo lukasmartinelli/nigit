@@ -2,7 +2,7 @@
 
 <img align="right" alt="nigit cat logo" src="nigit.png" />
 
-Expose any program with a simple call to `nigit <script>` to the web.
+Expose a program with a simple call to `nigit <script>` to the web.
 The small web server wraps around the program and exposes it as HTTP API.
 This comes in handy whenever you want to expose a legacy
 program to the internet without writing a web application and doing complicated
