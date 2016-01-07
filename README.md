@@ -67,6 +67,9 @@ How you can use `nigit` to build small and concise services:
 - Transpile code with `BabelJS`
 - Lint Shell scripts with `shellcheck`
 
+I use `nigit` to create a HTTP API to programming language linters
+in my [lintfox project](https://github.com/lukasmartinelli/lintfox).
+
 ## Usage
 
 ### Pass Arguments
@@ -106,7 +109,6 @@ curl http://localhost:8000/?stdin=Ping
 # post a file to the web api
 curl -X POST -F stdin=@greetings.txt http://localhost:8000/
 ```
-
 
 You can also specify a `stdin` field in JSON to pass something to the script.
 
@@ -183,7 +185,7 @@ Now create a bash script to wrap around `shellcheck`.
 We specify the `json` output formatter so that a web client could
 consume the API.
 
-```
+```bash
 #!/bin/bash
 
 function clone_repo() {
@@ -210,7 +212,8 @@ lint
 And now you can send links to Git repositories to your service to check them for Bash errors.
 
 ```bash
-curl -H "Accept: application/json" http://localhost:8000/shellcheck?git_repository=https://github.com/lukasmartinelli/nigit.git
+curl -H "Accept: application/json" \
+http://localhost:8000/shellcheck?git_repository=https://github.com/lukasmartinelli/nigit.git
 ```
 
 ## Develop
