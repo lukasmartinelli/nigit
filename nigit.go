@@ -188,7 +188,7 @@ func logRequests(handler http.Handler) http.Handler {
 func main() {
 	app := cli.NewApp()
 	app.Name = "nigit"
-	app.Version = "0.1-alpha"
+	app.Version = "0.2"
 	app.Usage = "Expose any Program as HTTP API"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
