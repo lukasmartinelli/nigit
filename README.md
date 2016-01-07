@@ -5,7 +5,7 @@
 Expose a program with a simple call to `nigit <script>` to the web.
 The small web server wraps around the program and exposes it as HTTP API.
 This comes in handy whenever you want to expose a legacy
-program to the internet without writing a web application and doing complicated
+program without writing a web application and doing complicated
 subprocessing yourself.
 
 ## Get Started
@@ -250,3 +250,6 @@ docker run --rm -v "$(pwd)":/usr/src/nigit -w /usr/src/nigit tcnksm/gox:1.4.2-li
 
 It is quite dangerous to expose a shell script to the internet. I also haven't tested any exploits
 yet but my guess is a shell script takes input from external is always vulnerable.
+
+A better approach is to run `nigit` in a Docker container and access it from your other micro services
+and never exposing it to the public.
