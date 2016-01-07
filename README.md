@@ -152,6 +152,67 @@ If you wrap around a program that outputs valid JSON you need to set the `Accept
 curl -H "Accept: application/json" http://localhost:8000/
 ```
 
+### Use together with Docker
+
+`nigit` fits perfectly into the Docker ecosystem. You can install `nigit` into a Docker
+container and wrap around a program that requires complex dependencies.
+
+Create a `Dockerfile` with `nigit` and your dependencies for the shell script.
+In this example we provide `shellcheck` as a service.
+
+```dockerfile
+FROM debian:jessie
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends shellcheck \
+ && rm -rf /var/lib/apt/lists/* \
+
+# install nigit
+RUN wget --quiet -O /usr/bin/nigit https://github.com/lukasmartinelli/nigit/releases/download/v0.1-beta/nigit_linux_amd64 \
+ && chmod +x /usr/bin/nigit
+
+# copy shell scripts
+COPY . /usr/src/app/
+WORKDIR /usr/src/app
+
+EXPOSE 8000
+CMD ["nigit", "--timeout", "5", "shellcheck.sh"]
+```
+
+Now create a bash script to wrap around `shellcheck`.
+We specify the `json` output formatter so that a web client could
+consume the API.
+
+```
+#!/bin/bash
+
+function clone_repo() {
+    local working_dir=$(mktemp -dt "lint.XXX")
+    local git_output=$(git clone --quiet "$GIT_REPOSITORY" "$working_dir")
+    echo "$working_dir"
+}
+
+function find_files() {
+    local path="$1"
+    local extension="$2"
+    find "$path" -type f -name "*$extension"
+}
+
+function lint() {
+    local repo_path=$(clone_repo)
+    shellcheck --format=json $(find_files "$repo_path" "sh") || suppress_lint_error
+    trap "rm -rf $repo_path" EXIT
+}
+
+lint
+```
+
+And now you can send links to Git repositories to your service to check them for Bash errors.
+
+```bash
+curl -H "Accept: application/json" http://localhost:8000/shellcheck?git_repository=https://github.com/lukasmartinelli/nigit.git
+```
+
 ## Develop
 
 You need a [Go workspace](https://golang.org/doc/code.html) to get started. 
