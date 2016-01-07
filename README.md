@@ -62,7 +62,7 @@ How you can use `nigit` to build small and concise services:
 
 - PDF build service using `pdflatex`
 - Convert DOCX files to Markdown with `pandoc`
-- [Image cropping with `imagemagick`]
+- Image cropping with `imagemagick`
 - Convert WAV to MP4 with `avconf`
 - Transpile code with `BabelJS`
 - Lint Shell scripts with `shellcheck`
