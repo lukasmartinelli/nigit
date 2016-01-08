@@ -216,6 +216,14 @@ curl -H "Accept: application/json" \
 http://localhost:8000/shellcheck?git_repository=https://github.com/lukasmartinelli/nigit.git
 ```
 
+## Security
+
+You should never expose this script directly to the internet. Shell scripts that take input from
+external are always vulnerable to different attack vectors.
+
+A better approach is to run `nigit` in a Docker container and access it from your other micro services
+and never exposing it to the public. This is still handy because you can isolate that old program and act as if it is an API to your other micro services.
+
 ## Develop
 
 You need a [Go workspace](https://golang.org/doc/code.html) to get started. 
@@ -245,11 +253,3 @@ binaries for Windows, OSX and Linux.
 ```bash
 docker run --rm -v "$(pwd)":/usr/src/nigit -w /usr/src/nigit tcnksm/gox:1.4.2-light
 ```
-
-## Security
-
-It is quite dangerous to expose a shell script to the internet. I also haven't tested any exploits
-yet but my guess is a shell script takes input from external is always vulnerable.
-
-A better approach is to run `nigit` in a Docker container and access it from your other micro services
-and never exposing it to the public.
