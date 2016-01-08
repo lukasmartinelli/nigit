@@ -67,9 +67,6 @@ How you can use `nigit` to build small and concise services:
 - Transpile code with `BabelJS`
 - Lint Shell scripts with `shellcheck`
 
-I use `nigit` to create a HTTP API to programming language linters
-in my [lintfox project](https://github.com/lukasmartinelli/lintfox).
-
 ## Usage
 
 ### Pass Arguments
