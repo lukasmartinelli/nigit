@@ -8,6 +8,12 @@ This comes in handy whenever you want to expose a legacy
 program without writing a web application and doing complicated
 subprocessing yourself.
 
+## Disclaimer
+
+**Please use [goexpose](https://github.com/phonkee/goexpose). It is much more capable and mature than `nigit`.**
+In the rush of building stuff I didn't realize that `nigit` is essentially a new take on the [terrible CGI scripts](https://en.wikipedia.org/wiki/Common_Gateway_Interface) we just escaped from.
+Be very careful where you use this, it is not intended for production usage in any means due to the [security risks](https://github.com/lukasmartinelli/nigit#security). I personally do use it for small home automation tasks.
+
 ## Get Started
 
 In this example we create a service to download the PDF version of websites using the
