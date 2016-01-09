@@ -32,7 +32,7 @@ You can download a single binary for Linux, OSX or Windows.
 **OSX**
 
 ```bash
-wget -O nigit https://github.com/lukasmartinelli/nigit/releases/download/v0.2/nigit_darwin_amd64
+wget -O nigit https://github.com/lukasmartinelli/nigit/releases/download/v0.3/nigit_darwin_amd64
 chmod +x nigit
 
 ./nigit --help
@@ -41,7 +41,7 @@ chmod +x nigit
 **Linux**
 
 ```bash
-wget -O nigit https://github.com/lukasmartinelli/nigit/releases/download/v0.2/nigit_linux_amd64
+wget -O nigit https://github.com/lukasmartinelli/nigit/releases/download/v0.3/nigit_linux_amd64
 chmod +x nigit
 
 ./nigit --help
@@ -155,7 +155,7 @@ curl -H "Accept: application/json" http://localhost:8000/
 
 `nigit` has authorization middleware which allows you to call an executable
 to approve requests. The Authorization http header gets passed as the AUTH
-env variable.
+env variable. Thanks to @pdxjohnny for the implementation.
 
 
 ```bash
