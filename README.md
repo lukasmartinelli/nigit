@@ -151,6 +151,37 @@ If you wrap around a program that outputs valid JSON you need to set the `Accept
 curl -H "Accept: application/json" http://localhost:8000/
 ```
 
+### Authorization
+
+`nigit` has authorization middleware which allows you to call an executable
+to approve requests. The Authorization http header gets passed as the AUTH
+env variable.
+
+
+```bash
+./nigit --auth ./auth.py ./echo.sh
+```
+
+Example auth.sh
+```bash
+#!/bin/bash
+echo $AUTH
+exit $AUTH
+```
+
+If it exits non-zero then the client with receive a http.Unauthorized and the
+stdout of auth.sh will be printed to nigit stdout.
+
+```bash
+curl -H "Authorization: 1" http://localhost:8000/echo?say=hi
+```
+> Output: {"Error":"Unauthorized"}
+
+```bash
+curl -H "Authorization: 0" http://localhost:8000/echo?say=hi
+```
+> Output: hi
+
 ### Use together with Docker
 
 `nigit` fits perfectly into the Docker ecosystem. You can install `nigit` into a Docker
