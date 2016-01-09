@@ -27,7 +27,7 @@ var uncoloredFormat = logging.MustStringFormatter(
 
 // Execute program in a given time frame and deal and log errors
 // if programm exits successfully the full stdout output is returned
-func execProgram(program string, extraEnv []string, input string, timeout int) bytes.Buffer {
+func execProgram(program string, extraEnv []string, input string, timeout int) (bytes.Buffer, error) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
@@ -51,7 +51,7 @@ func execProgram(program string, extraEnv []string, input string, timeout int) b
 
 	if err := cmd.Start(); err != nil {
 		reportFailure()
-		return stdout
+		return stdout, err
 	}
 
 	done := make(chan error, 1)
@@ -63,17 +63,18 @@ func execProgram(program string, extraEnv []string, input string, timeout int) b
 	case <-time.After(time.Duration(timeout) * time.Second):
 		if err := cmd.Process.Kill(); err != nil {
 			log.Fatal("Cannot kill process: ", err)
+			return stdout, err
 		}
 		log.Debugf("Process %s killed", programName)
 	case err := <-done:
 		if err != nil {
 			reportFailure()
-		} else {
-			log.Debugf("Executed %s without error in %s", programName, cmd.ProcessState.UserTime())
+			return stdout, err
 		}
+		log.Debugf("Executed %s without error in %s", programName, cmd.ProcessState.UserTime())
 	}
 
-	return stdout
+	return stdout, nil
 }
 
 // Get url route of a program path
@@ -137,7 +138,7 @@ func handleInput(w http.ResponseWriter, r *http.Request, programPath string, tim
 	envs = append(envs, "ACCEPT="+accept)
 	envs = append(envs, "HOST="+r.Header.Get("Host"))
 
-	stdout := execProgram(programPath, envs, input.String(), timeout)
+	stdout, _ := execProgram(programPath, envs, input.String(), timeout)
 
 	// We reply with the requested content type as we do not know
 	// what the program or script will ever return while the client does
@@ -178,6 +179,37 @@ func serve(programPath string, timeout int) http.Handler {
 	})
 }
 
+func checkAuth(programPath string, timeout int, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authToken := r.Header.Get("Authorization")
+		envs := []string{"AUTH=" + authToken}
+
+		stdout, err := execProgram(programPath, envs, "", timeout)
+		if err != nil {
+			stdout.WriteTo(os.Stdout)
+			w.WriteHeader(http.StatusUnauthorized)
+			io.WriteString(w, "{\"Error\":\"Unauthorized\"}")
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func checkPath(program string) (string, error) {
+	programPath, err := filepath.Abs(program)
+	if err != nil {
+		return "", fmt.Errorf("Cannot get path of %s", program)
+	}
+
+	programPath, err = exec.LookPath(programPath)
+	if err != nil {
+		return "", fmt.Errorf("Executable program %s not found", program)
+	}
+
+	return programPath, nil
+}
+
 func logRequests(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Infof("%s %s", r.Method, r.URL)
@@ -208,6 +240,21 @@ func main() {
 			Usage:  "Do not colorize output",
 			EnvVar: "NO_COLOR",
 		},
+		cli.StringFlag{
+			Name:   "auth",
+			Usage:  "Executable to call with authorization header",
+			EnvVar: "AUTH",
+		},
+		cli.StringFlag{
+			Name:   "cert",
+			Usage:  "Certificate for https",
+			EnvVar: "CERT",
+		},
+		cli.StringFlag{
+			Name:   "key",
+			Usage:  "Private key for https",
+			EnvVar: "KEY",
+		},
 	}
 
 	app.Action = func(c *cli.Context) {
@@ -225,20 +272,38 @@ func main() {
 		log.Infof("Serve from port %s with %d seconds timeout", c.GlobalString("port"), c.GlobalInt("timeout"))
 
 		for _, program := range c.Args() {
-			programPath, err := filepath.Abs(program)
+			programPath, err := checkPath(program)
 			if err != nil {
-				log.Fatalf("Cannot get path of %s", program)
-			}
-
-			programPath, err = exec.LookPath(programPath)
-			if err != nil {
-				log.Fatalf("Executable program %s not found", program)
+				log.Fatal(err)
 			}
 
 			log.Infof("Handle %s -> %s", urlPath(programPath), program)
-			http.Handle(urlPath(programPath), serve(programPath, c.GlobalInt("timeout")))
+			if c.GlobalString("auth") != "false" {
+				authPath, err := checkPath(c.GlobalString("auth"))
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				http.Handle(urlPath(programPath),
+					checkAuth(authPath,
+						c.GlobalInt("timeout"),
+						serve(programPath, c.GlobalInt("timeout")),
+					),
+				)
+			} else {
+				http.Handle(urlPath(programPath), serve(programPath, c.GlobalInt("timeout")))
+			}
 		}
-		http.ListenAndServe(":"+c.GlobalString("port"), logRequests(http.DefaultServeMux))
+
+		if c.GlobalString("cert") != "" || c.GlobalString("key") != "" {
+			http.ListenAndServeTLS(":"+c.GlobalString("port"),
+				c.GlobalString("cert"),
+				c.GlobalString("key"),
+				logRequests(http.DefaultServeMux),
+			)
+		} else {
+			http.ListenAndServe(":"+c.GlobalString("port"), logRequests(http.DefaultServeMux))
+		}
 	}
 
 	app.Run(os.Args)
