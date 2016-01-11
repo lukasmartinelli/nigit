@@ -8,6 +8,8 @@ This comes in handy whenever you want to expose a legacy
 program without writing a web application and doing complicated
 subprocessing yourself.
 
+> If you are interested in Docker [checkout my Dockerfile linter written in Haskell](https://github.com/lukasmartinelli/hadolint)
+
 ## Disclaimer
 
 **Please use [goexpose](https://github.com/phonkee/goexpose). It is much more capable and mature than `nigit`.**
