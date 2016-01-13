@@ -278,7 +278,7 @@ func main() {
 			}
 
 			log.Infof("Handle %s -> %s", urlPath(programPath), program)
-			if c.GlobalString("auth") != "false" {
+			if c.GlobalString("auth") != "" {
 				authPath, err := checkPath(c.GlobalString("auth"))
 				if err != nil {
 					log.Fatal(err)
