@@ -165,7 +165,7 @@ env variable. Thanks to @pdxjohnny for the implementation.
 
 
 ```bash
-./nigit --auth ./auth.py ./echo.sh
+./nigit --auth ./auth.sh ./echo.sh
 ```
 
 Example auth.sh
