@@ -1,5 +1,7 @@
 # nigit [![Build Status](https://travis-ci.org/lukasmartinelli/nigit.svg)](https://travis-ci.org/lukasmartinelli/nigit) ![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)
 
+> :warning: This repository is no longer maintained by Lukas Martinelli.
+
 <img align="right" alt="nigit cat logo" src="nigit.png" />
 
 Expose a program with a simple call to `nigit <script>` to the web.
